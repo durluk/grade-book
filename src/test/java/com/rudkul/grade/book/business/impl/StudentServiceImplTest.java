@@ -65,10 +65,13 @@ class StudentServiceImplTest {
     void registerStudent_ForValidInput_ShouldCreateAndSave() {
         // given
         StudentToRegisterDTO studentToRegister = createStudentToRegisterDTO();
+        when(repository.findStudentByPesel(anyString())).thenReturn(null);
+
         // when
         studentService.registerStudents(Collections.singletonList(studentToRegister));
 
         // then
+        verify(repository).findStudentByPesel(anyString());
         verify(repository).save(studentCaptor.capture());
         assertCapturedStudent(studentToRegister);
     }
@@ -79,7 +82,34 @@ class StudentServiceImplTest {
         studentService.registerStudents(emptyList());
 
         // then
+        verify(repository, never()).findStudentByPesel(any());
         verify(repository, never()).save(any());
+    }
+
+    @Test
+    void registerStudent_ForAlreadyPersistedInput_ShouldThrowUnsupportedOperationException() {
+        // given
+        StudentToRegisterDTO studentToRegister = createStudentToRegisterDTO();
+        when(repository.findStudentByPesel(anyString())).thenReturn(new Student());
+
+        // when then
+        assertThrows(UnsupportedOperationException.class, () -> studentService
+                .registerStudents(Collections.singletonList(studentToRegister)));
+        verify(repository).findStudentByPesel(anyString());
+        verify(repository, never()).save(any(Student.class));
+    }
+
+    @Test
+    void registerStudent_ForNullBirthDate_ShouldThrowIllegalArgumentException() {
+        // given
+        StudentToRegisterDTO studentToRegister = createStudentToRegisterDTO(null);
+        when(repository.findStudentByPesel(anyString())).thenReturn(null);
+
+        // when then
+        assertThrows(IllegalArgumentException.class, () -> studentService
+                .registerStudents(Collections.singletonList(studentToRegister)));
+        verify(repository).findStudentByPesel(anyString());
+        verify(repository, never()).save(any(Student.class));
     }
 
     @Test
@@ -231,12 +261,15 @@ class StudentServiceImplTest {
     }
 
     private StudentToRegisterDTO createStudentToRegisterDTO() {
-        LocalDate birthDate = LocalDate.now();
+        return createStudentToRegisterDTO(LocalDate.now().toString());
+    }
+
+    private StudentToRegisterDTO createStudentToRegisterDTO(String birthDate) {
         StudentToRegisterDTO studentToRegister = new StudentToRegisterDTO();
         studentToRegister.setFirstName("Adam");
         studentToRegister.setLastName("Nowak");
         studentToRegister.setPesel("12345678912");
-        studentToRegister.setBirthDate(birthDate.toString());
+        studentToRegister.setBirthDate(birthDate);
         studentToRegister.setDyslexic("true");
         studentToRegister.setSchoolYear("1");
         studentToRegister.setStreet("Pocztowa");

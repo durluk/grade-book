@@ -60,6 +60,9 @@ public class StudentServiceImpl implements StudentService {
             if (isStudentWithGivenPeselDoesNotExists(studentToRegister)) {
                 Student student = createStudent(studentToRegister);
                 save(student);
+            } else {
+                throw new UnsupportedOperationException("Student with such pesel already exists"
+                        + studentToRegister.getPesel());
             }
         }
     }
